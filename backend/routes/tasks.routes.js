@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const taskController = require('../controllers/tasks.controllers')
 const { verifyToken } = require('../middleware/auth')
+const { isTeamAdmin } = require('../middleware/role');
 /**
  * @swagger
  * tags:
@@ -168,12 +169,50 @@ const { verifyToken } = require('../middleware/auth')
  *       404:
  *         description: Không tìm thấy task
  */
+/**
+ * @swagger
+ * /api/v1/task/{id}:
+ *   patch:
+ *     summary: Chỉnh sửa task theo ID
+ *     tags: [Tasks]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - name: id
+ *         in: path
+ *         description: ID của task cần chỉnh sửa
+ *         required: true
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               title:
+ *                 type: string
+ *               description:
+ *                 type: string
+ *               due_date:
+ *                 type: string
+ *                 format: date
+ *     responses:
+ *       200:
+ *         description: Cập nhật task thành công
+ *       404:
+ *         description: Không tìm thấy task
+ */
+
 
 router.post("/create", taskController.createTask);
 router.post('/accept', taskController.acceptTask);
-router.post('/assign', verifyToken, taskController.assignTask);
+router.post('/assign', taskController.assignTask);
 router.get('/:id', verifyToken, taskController.getTaskDetail);
 router.patch('/:id/complete', verifyToken, taskController.completeTask);
-router.delete('/:id', verifyToken, taskController.deleteTask);
+router.delete('/:id', verifyToken, isTeamAdmin, taskController.deleteTask);
+router.patch('/:id', verifyToken, taskController.editTask);
+
 
 module.exports = router;

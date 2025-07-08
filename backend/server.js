@@ -49,6 +49,9 @@ app.use('/api/v1/group', groupRoutes);
 app.use('/api/v1/comment', commentRoutes);
 app.use('/api/v1/notification', notificationRoutes);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.get('/health', (req, res) => {
+    res.status(200).json({ status: 'OK', uptime: process.uptime() });
+});
 
 
 

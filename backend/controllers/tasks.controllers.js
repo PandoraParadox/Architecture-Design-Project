@@ -138,10 +138,10 @@ exports.getTaskDetail = async (req, res) => {
     try {
         const [taskRows] = await db.execute(
             `SELECT t.*, tm.id AS creator_member_id, u.name AS creator_name
-       FROM tasks t
-       JOIN team_members tm ON t.created_by_team_member_id = tm.id
-       JOIN users u ON tm.user_id = u.id
-       WHERE t.id = ?`,
+        FROM tasks t
+        JOIN team_members tm ON t.created_by_team_member_id = tm.id
+        JOIN users u ON tm.user_id = u.id
+        WHERE t.id = ?`,
             [id]
         );
         if (taskRows.length === 0)
@@ -151,20 +151,20 @@ exports.getTaskDetail = async (req, res) => {
 
         const [assignees] = await db.execute(
             `SELECT tm.id AS team_member_id, u.name AS user_name, tm.role, ta.accepted, ta.accepted_at
-       FROM task_assignments ta
-       JOIN team_members tm ON ta.team_member_id = tm.id
-       JOIN users u ON tm.user_id = u.id
-       WHERE ta.task_id = ?`,
+        FROM task_assignments ta
+        JOIN team_members tm ON ta.team_member_id = tm.id
+        JOIN users u ON tm.user_id = u.id
+        WHERE ta.task_id = ?`,
             [id]
         );
 
         const [comments] = await db.execute(
             `SELECT c.id, c.content, c.created_at, u.name AS user_name
-       FROM comments c
-       JOIN team_members tm ON c.team_member_id = tm.id
-       JOIN users u ON tm.user_id = u.id
-       WHERE c.task_id = ?
-       ORDER BY c.created_at ASC`,
+        FROM comments c
+        JOIN team_members tm ON c.team_member_id = tm.id
+        JOIN users u ON tm.user_id = u.id
+        WHERE c.task_id = ?
+        ORDER BY c.created_at ASC`,
             [id]
         );
 
@@ -187,6 +187,48 @@ exports.getTaskDetail = async (req, res) => {
         });
     } catch (err) {
         console.error("Get task detail error:", err);
+        res.status(500).json({ message: "Server error" });
+    }
+};
+
+
+exports.editTask = async (req, res) => {
+    const { id } = req.params;
+    const { title, description, due_date } = req.body;
+
+    try {
+        const [task] = await db.execute("SELECT * FROM tasks WHERE id = ?", [id]);
+        if (task.length === 0)
+            return res.status(404).json({ message: "Task not found" });
+
+        let priority = task[0].priority;
+        if (due_date) {
+            const currentDate = new Date();
+            const newDueDate = new Date(due_date);
+            const diffTime = newDueDate - currentDate;
+            const diffDays = diffTime / (1000 * 60 * 60 * 24);
+
+            if (diffDays < 1) priority = "high";
+            else if (diffDays < 3) priority = "medium";
+            else priority = "low";
+        }
+
+        await db.execute(
+            `UPDATE tasks 
+             SET title = ?, description = ?, due_date = ?, priority = ? 
+             WHERE id = ?`,
+            [
+                title || task[0].title,
+                description || task[0].description,
+                due_date || task[0].due_date,
+                priority,
+                id,
+            ]
+        );
+
+        res.status(200).json({ message: "Task updated successfully" });
+    } catch (err) {
+        console.error("Edit task error:", err);
         res.status(500).json({ message: "Server error" });
     }
 };
